@@ -1,71 +1,103 @@
-const express = require('express');
-const session = require('express-session');
+const express = require("express");
+const session = require("express-session");
+const MongoDBSession = require("connect-mongodb-session")(session);
+const mongoose = require("mongoose");
+const app = express();
+
+const mongoURI = "mongodb://localhost:27017/sessions";
+
+mongoose.connect(mongoURI)
+.then((res) => {
+  console.log("MongoDB connected");
+});
+
+const store = new MongoDBSession({
+  uri: mongoURI,
+  collection: "mySessions",
+});
+
+app.use(
+  session({
+    secret: 'goiuytvjir413c',
+    resave: false,
+    saveUninitialized: false,
+    store: store,
+  })
+);
+
+const isAuth = (req, res, next) => {
+  if(req.session.isAuth) {
+    next();
+  } else {
+    res.redirect('/auth/login');
+  }
+}
+
+const isModeratorOrAdmin = (req, res, next) => {
+  if(req.session.role === "moderator" || req.session.role === "admin") {
+    next();
+  } else {
+    res.status(403).send("Forbidden");
+  }
+}
+
+const isAdmin = (req, res, next) => {
+  if(req.session.role === "admin") {
+    next();
+  } else {
+    res.status(403).send("Forbidden");
+  }
+}
+
 const { Pool } = require('pg');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
-const app = express();
 const port = 3000;
-
-app.use(session({
-    secret: '1$3v3r-S33Cr3tK3y!#4MyApp',
-    resave: false,
-    saveUninitialized: false
-  }));
   
-  const pool = new Pool({ user: 'postgres', host: 'localhost', database: 'mydatabase', password: 'sql001', port: 5432, });
+  const pool = new Pool({
+    user: 'postgres',
+    host: 'localhost',
+    database: 'mydatabase',
+    password: 'sql001',
+    port: 5432,
+  });
+  pool.on('connect', () => {
+    console.log('PostgreSQL connected');
+  });
+
   app.use(bodyParser.urlencoded({ extended: true }));
   app.use(bodyParser.json());
 
-// Middleware to check if the user is authenticated
-//const isAuthenticated = (req, res, next) => {
-//    if (req.session && req.session.user) {
-//      next();
-//    } else {
-//      res.redirect('/auth/login');
-//    }
-//  };
-  
-
-// Middleware to check the user's role
-//  const checkUserRole = (role) => {
-//    return (req, res, next) => {
-//      if (req.session.user && req.session.user.role === role) {
-//        next();
-//      } else {
-//        res.status(403).send('Forbidden');
-//      }
-//    };
-//  };
-
 app.use(express.static('public'));
 
-app.get('/user/dashboard', (req, res) => {
+app.get('/user/dashboard', isAuth, (req, res) => {
     res.sendFile(__dirname + '/public/user/dashboard/dashboard.html');
   });
   
-app.get('/admin/dashboard', (req, res) => {
+app.get('/admin/dashboard', isAuth, isAdmin, (req, res) => {
   res.sendFile(__dirname + '/public/admin/dashboard/dashboard.html');
 });
   
-app.get('/moderator/dashboard', (req, res) => {
+app.get('/moderator/dashboard', isAuth, isModeratorOrAdmin, (req, res) => {
   res.sendFile(__dirname + '/public/moderator/dashboard/dashboard.html');
 });
 
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/public/home/home.html');
 });
+
+app.get('/auth/login', (req, res) => {
+  res.sendFile(__dirname + '/public/login/login.html');
+});
   
-  app.get('/auth/login', (req, res) => {
-    res.sendFile(__dirname + '/public/login/login.html');
-  });
-  
-  app.get('/auth/register', (req, res) => {
-    res.sendFile(__dirname + '/public/register/register.html');
-  });
+app.get('/auth/register', (req, res) => {
+  res.sendFile(__dirname + '/public/register/register.html');
+});
 
 app.post('/auth/login', async (req, res) => {
     const { username, password } = req.body;
     const query = 'SELECT * FROM users WHERE username = $1';
+    const roleQuery = 'SELECT role FROM users WHERE username = $1';
     const values = [username];
 
     try {
@@ -79,15 +111,26 @@ app.post('/auth/login', async (req, res) => {
           const isPasswordValid = await bcrypt.compare(password, user.password);
           
           if (isPasswordValid) {
+
+            const roleResult = await pool.query(roleQuery, values);
+            if (roleResult.rows.length === 0) {
+              res.status(500).send('Error retrieving user role');
+              return;
+            }
+            const userRole = roleResult.rows[0].role;
+
             let redirectPath = '/user/dashboard';
             if (user.role === 'admin') {
                 redirectPath = '/admin/dashboard';
             } else if (user.role === 'moderator') {
                 redirectPath = '/moderator/dashboard';
             }
-            res.redirect(redirectPath);}
-            
-            else {res.status(401).send('Invalid username or password');}
+
+            req.session.role = userRole;
+            req.session.isAuth = true;
+            res.redirect(redirectPath);
+          }
+          else {res.status(401).send('Invalid username or password');}
             
     } catch (error) {
         console.error(error);
@@ -112,12 +155,14 @@ app.post('/logout', (req, res) => {
 
 app.post('/auth/register', async (req, res) => {
     const { username, email, password } = req.body;
+    const role = "user";
     const hashedPassword = await bcrypt.hash(password, 10);
-    const query = 'INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING *';
-    const values = [username, email, hashedPassword];
+    const query = 'INSERT INTO users (username, email, password, role) VALUES ($1, $2, $3, $4) RETURNING *';
+    const values = [username, email, hashedPassword, role];
     try {
         const result = await pool.query(query, values);
-        res.json(result.rows[0]);
+        //redirect to login page
+        res.redirect('/auth/login');
     } catch (error) {
         console.error(error);
         res.status(500).send('Error registering user');
