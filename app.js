@@ -71,15 +71,15 @@ const port = 3000;
 app.use(express.static('public'));
 
 app.get('/user/dashboard', isAuth, (req, res) => {
-    res.sendFile(__dirname + '/public/user/dashboard/dashboard.html');
+    res.sendFile(__dirname + '/public/user/dashboard.html');
   });
   
 app.get('/admin/dashboard', isAuth, isAdmin, (req, res) => {
-  res.sendFile(__dirname + '/public/admin/dashboard/dashboard.html');
+  res.sendFile(__dirname + '/public/admin/dashboard.html');
 });
   
 app.get('/moderator/dashboard', isAuth, isModeratorOrAdmin, (req, res) => {
-  res.sendFile(__dirname + '/public/moderator/dashboard/dashboard.html');
+  res.sendFile(__dirname + '/public/moderator/dashboard.html');
 });
 
 app.get('/', (req, res) => {
