@@ -1,0 +1,12 @@
+gmp-map {
+    margin-left: 1.5%;
+    height: 50%;
+    width: 25%;
+}
+
+html,
+body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>assignment 3</title>
+    <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAyZ0eSyk51Ya9PrIPxwGBHu-aZ6Ga2OrM&callback=console.debug&libraries=maps,marker&v=beta"></script>
+    <link rel="stylesheet" href="/style/map.css">
+    <link rel="stylesheet" href="/style/quote.css">
+    <link rel="stylesheet" href="/style/converter.css">
+</head>
+<body>
+    
+<gmp-map center="51.090789794921875,71.418212890625" zoom="14" map-id="DEMO_MAP_ID">
+    <gmp-advanced-marker position="51.090789794921875,71.418212890625" title="My location"></gmp-advanced-marker>
+</gmp-map>
+
+<div class="quoteContainer">
+    <div id="quote"></div>
+    <div id="author"></div>
+</div>
+
+<div class="APIContainer">
+    <h4>Find out current currency exchange rates</h4>
+    <div class="currencyContainer">
+        <div style="margin-top: 16px">
+            <p>From: </p>
+            <p>To: </p>
+        </div>
+        <div style="margin-left: 20px">
+            <input class="form-control marginTopBottom" type="text" id="inputCurrencyFrom" value="EUR">
+            <input class="form-control marginTopBottom" type="text" id="inputCurrencyTo" value="USD">
+            <button class="btn btn-primary" id="buttonCurrency">Calculate</button>
+        </div>
+        <div class="currencyResult">
+            <h4 id="currencyResult">Result: 0</h4>
+        </div>
+    </div>
+</div>
+<script src="/script/converter.js" type="module"></script>
+<script src="/script/quote.js" type="module"></script>
+</body>
+</html>

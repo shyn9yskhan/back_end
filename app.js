@@ -73,6 +73,12 @@ app.use(express.static('public'));
 app.get('/user/dashboard', isAuth, (req, res) => {
     res.sendFile(__dirname + '/public/user/dashboard.html');
   });
+
+//map
+app.get('/user/map', isAuth, (req, res) => {
+  res.sendFile(__dirname + '/public/user/map.html');
+});
+//map
   
 app.get('/admin/dashboard', isAuth, isAdmin, (req, res) => {
   res.sendFile(__dirname + '/public/admin/dashboard.html');
